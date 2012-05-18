@@ -27,6 +27,8 @@ The hands are, in increasing ranking:
 * FULLHOUSE (a pair and three of a kind, AAKKK)
 * FOUROFAKIND (four cards of same value, AAAA2)
 
+*NOTE:* Straights may not "wrap around the corner" i.e. QKA23 is not a straight
+
 The output is the named rank of each hand and a winner, 0 if hand 0 won, 1 if
 hand 1, and 01 if it was a tie.
 

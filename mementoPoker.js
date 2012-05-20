@@ -9,14 +9,14 @@ exports['rankNames'] = rankNames;
 lowHighSort is the comparison function that sorts numbers from lowest to highest
 */
 function lowHighSort(a, b) {
-    return a-b;
+    return parseInt(a)-parseInt(b);
 }
 
 /*
 highLowSort is the comparison function that sorts numbers from highest to lowest
 */
 function highLowSort(a, b) {
-    return b-a;
+    return parseInt(b)-parseInt(a);
 }
 
 /*
@@ -113,16 +113,36 @@ function countRepeatsInList(hand) {
 exports['countRepeatsInList'] = countRepeatsInList;
 
 /*
-checkIsFourOfAKind
+checkIsFourOfAKind tests to see if hand contains a four of a kind.
 */
 function checkIsFourOfAKind(hand) {
-    var countResult = countRepeatsInList(hand);
+    var handNoWilds = removeWilds(hand);
+    var countResult = countRepeatsInList(handNoWilds);
     var frequencies = countResult[0];
     var repeats = countResult[1];
-    if(Object.keys(repeats).length == 2
-       && repeats[4] && repeats[4].length == 1
-       && repeats[1] && repeats[1].length == 1) {
-        return [6, repeats[4][0], repeats[1][0]];
+    var wilds = hand.length - handNoWilds.length;
+    var largestKey = parseInt(Object.keys(repeats).sort(highLowSort)[0]);
+    if(wilds > 4) {
+        return [6, 14, 14];
+    }
+    else if(wilds == 4) {
+        return [6, 14, repeats[largestKey].sort(highLowSort)[0]];
+    }
+    else if(wilds+largestKey > 4) {
+        var four = repeats[largestKey].sort(highLowSort)[0];
+        return [6, four, 14];
+    }
+    else if (wilds+largestKey == 4) {
+        var four = repeats[largestKey].sort(highLowSort)[0];
+        var highcard;
+        var sortedHandNoWilds = handNoWilds.sort(highLowSort)
+        if (sortedHandNoWilds.indexOf(four) > 0) {
+            highcard = sortedHandNoWilds[0];
+        }
+        else {
+            highcard = sortedHandNoWilds[sortedHandNoWilds.length - 1];
+        }
+        return [6, four, highcard];
     }
     
     return false;
@@ -130,16 +150,24 @@ function checkIsFourOfAKind(hand) {
 exports['checkIsFourOfAKind'] = checkIsFourOfAKind;
 
 /*
-checkIsFullHouse
+checkIsFullHouse checks to see if hand is a full house.
+
+NOTE: In the interest of time, this only handles the cases that are not also
+four of a kinds! I'm sure there is an easy way to handle all cases, but this is
+not it.
 */
 
 function checkIsFullHouse(hand) {
-    var countResult = countRepeatsInList(hand);
+    var handNoWilds = removeWilds(hand);
+    var countResult = countRepeatsInList(handNoWilds);
     var frequencies = countResult[0];
     var repeats = countResult[1];
-    if(Object.keys(repeats).length == 2
-       && repeats[3] && repeats[3].length == 1
-       && repeats[2] && repeats[2].length == 1) {
+    var wilds = hand.length - handNoWilds.length;
+    if (2 in repeats && repeats[2].length ==2 && wilds == 1) {
+        var sortedPairs = repeats[2].sort(highLowSort);
+        return [5, sortedPairs[0], sortedPairs[1]];
+    }
+    else if (2 in repeats && 3 in repeats) {
         return [5, repeats[3][0], repeats[2][0]];
     }
     
@@ -148,30 +176,80 @@ function checkIsFullHouse(hand) {
 exports['checkIsFullHouse'] = checkIsFullHouse;
 
 /*
-checkIsStraight
+checkIsStraight checks to see if a hand contains a straight.
+
+This is done by starting at the lowest number and stepping upward, using wilds
+as necessary, to see if we can create a string of 5 consecutive cards.
+
+Ugly.
 */
 function checkIsStraight(hand) {
-    var sortedHand = hand.sort(lowHighSort);
+    var handNoWilds = removeWilds(hand);
+    var wilds = hand.length - handNoWilds.length;
+    var sortedHandUp = handNoWilds.sort(lowHighSort);
+    var sortedHandDown = handNoWilds.slice(0).sort(highLowSort);
     
-    // in order to handle the fact that the ace (here 14) can be low, we special
-    // case that situation
-    if(sortedHand[0] == 2 && sortedHand[4] == 14) {
-        sortedHand.splice(0, 0, 1);
-        sortedHand.pop();
+    // in order to handle the fact that the ace (here 14) can be low, we simply
+    // include both a 1 and a 14 if an ace is in the hand and then check each
+    // hand for a straight that starts high and again for one starting low
+    // (the same thing for any hand that does not contain an ace)
+    if(sortedHandDown[0] == 14) {
+        sortedHandUp.splice(0, 0, 1);
+        sortedHandUp.splice(sortedHandUp.length-1, 1);
     }
     
-    var lastCard = (sortedHand[0] == 14) ? 1 : sortedHand[0];
-    for(var i = 1; i < sortedHand.length; i++) {
-        var thisCard = sortedHand[i];
-        if(thisCard != (lastCard+1)) {
-            return false;
+    var lastCardUp = sortedHandUp[0];
+    var lastCardDown = sortedHandDown[0];
+    var firstCardDown = lastCardDown;
+    var straightUp = true;
+    var straightDown = true;
+    var wildsUp = wilds;
+    var wildsDown = wilds;
+    for(var i = 1; i < sortedHandUp.length; i++) {
+        var thisCardUp = sortedHandUp[i];
+        var cardUp = thisCardUp;
+        var thisCardDown = sortedHandDown[i];
+        var cardDown = thisCardDown;
+        while(thisCardUp != lastCardUp+1 && wildsUp > 0) {
+            wildsUp--;
+            thisCardUp--;
+        }
+        if(thisCardUp != lastCardUp+1) {
+            straightUp = false;
         }
         else {
-            lastCard = thisCard;
+            lastCardUp = cardUp;
+        }
+        
+        while(thisCardDown != lastCardDown-1 && wildsDown > 0) {
+            wildsDown--;
+            thisCardDown++;
+        }
+        if(thisCardDown != lastCardDown-1) {
+            straightDown = false;
+        }
+        else {
+            lastCardDown = cardDown;
         }
     }
     
-    return [4, lastCard];
+    var highestDown = firstCardDown + wildsDown;
+    if (highestDown > 14) highestDown   = 14;
+    var highestUp = lastCardUp + wildsUp;
+    if (highestUp > 14) highestUp = 14;
+    
+    if(straightDown && straightUp) {
+        var highcard = (highestUp > highestDown) ? highestUp : highestDown
+        return [4, highcard];
+    }
+    else if(straightUp) {
+        return [4, highestUp];
+    }
+    else if(straightDown) {
+        return [4, highestDown];
+    }
+    
+    return false;
 }
 exports['checkIsStraight'] = checkIsStraight;
 
@@ -180,14 +258,31 @@ checkIsThreeOfAKind
 */
 
 function checkIsThreeOfAKind(hand) {
-    var countResult = countRepeatsInList(hand);
+    var handNoWilds = removeWilds(hand);
+    var countResult = countRepeatsInList(handNoWilds);
     var frequencies = countResult[0];
     var repeats = countResult[1];
-    if(Object.keys(repeats).length == 2
-       && repeats[3] && repeats[3].length == 1
-       && repeats[1] && repeats[1].length == 2) {
-        var highcard = repeats[1].sort(highLowSort)[0];
-        return [3, repeats[3][0], highcard];
+    var wilds = hand.length - handNoWilds.length;
+    var largestKey = parseInt(Object.keys(repeats).sort(highLowSort)[0]);
+    var highcard;
+    var triple;
+    if(wilds >= 4) {
+        return [3,14,14];
+    }
+    else if(wilds == 3) {
+        return [3,14,handNoWilds.sort(highLowSort)[0]];
+    }
+    else if(wilds+largestKey > 3) {
+        var triple = (wilds >= 3) ? 14 : repeats[largestKey].sort(highcard)[0];
+        var highcard = (wilds+largestKey > 3) ? 14 : sortedHand[0];
+        return [3, triple, highcard];
+    }
+    else if(wilds+largestKey == 3) {
+        var triple = (wilds >= 3) ? 14 : repeats[largestKey].sort(highLowSort)[0];
+        var sortedHand = handNoWilds.sort(highLowSort);
+        var highcard = (triple == sortedHand[0]) ? sortedHand[largestKey]
+                                                 : sortedHand[0];
+        return [3, triple, highcard];
     }
     
     return false;
@@ -273,3 +368,49 @@ function compareHands(handOne, handTwo) {
     return '01';
 }
 exports['compareHands'] = compareHands;
+
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////// Wild Replacement ///////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+function removeWilds(handWithWilds) {
+    var result = [];
+    for(var i = 0; i < handWithWilds.length; i++) {
+        if (handWithWilds[i] != 0) {
+            result.push(handWithWilds[i]);
+        }
+    }
+    return result;
+}
+
+exports['removeWilds'] = removeWilds;
+
+
+// function replaceWildsFourOfAKind(handWithWilds) {
+//     var countResult = countRepeatsInList(hand);
+//     var frequencies = countResult[0];
+//     var repeats = countResult[1];
+//     var wilds = (0 in frequencies) : frequencies[0] : 0;
+//     var largestKey = Object.keys(repeats).sort(highLowSort)[0];
+//     if(wilds+largestKey > 4) {
+//         var four = repeats[largestKey].sort(highLowSort)[0];
+//         var highcard = 14;
+//         return [6, four, highcard];
+//     }
+//     else if (wilds+largestKey == 4) {
+//         var four = repeats[largestKey].sort(highLowSort)[0];
+//         var highcard;
+//         var sortedHandNoWilds = handWithWilds.sort(highLowSort).splice(0,wilds);
+//         if(sortedHandNoWilds.indexOf(four) > 0) {
+//             highcard = sortedHandNoWilds[0];
+//         }
+//         else(sortedHand.indexOf(four)) {
+//             highcard = sortedHandNoWilds[sortedHandNoWilds.length - 1];
+//         }
+//         return [6, four, highcard];
+//     }
+//     else {
+//         return false
+//     }
+// }
+// exports['replaceWildsFourOfAKind'] = replaceWildsFourOfAKind;

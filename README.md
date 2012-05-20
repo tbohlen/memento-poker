@@ -32,7 +32,7 @@ The hands are, in increasing ranking:
 The output is the named rank of each hand and a winner, 0 if hand 0 won, 1 if
 hand 1, and 01 if it was a tie.
 
-Sample Input:
+####Sample Input and Output:
  
 Input Line #1: AAKKK, 23456
 Output #1: FULLHOUSE, STRAIGHT, 0

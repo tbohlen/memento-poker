@@ -1,0 +1,52 @@
+#!/usr/bin/env node
+
+var program = require('commander');
+var poker = require('./mementoPoker.js')
+
+program
+    .version('1.0.0')
+    .description("Takes two options as strings representing the two poker hands \
+    to be compared")
+    .parse(process.argv);
+
+// check to make sure all the parameters were provided correctly
+if(program.args.length != 2) {
+    console.log("You must input two poker hands as separate 5-character strings");
+    return
+}
+else if(!poker.testHandIsValid(program.args[0])) {
+    console.log("Hand one has the wrong format!")
+    console.log("The hand must have 5 cards, each represented by one character:");
+    console.log("2, 3, 4, 5, 6, 7, 8, 9, T, J, Q, K, A, or *");
+    return
+}
+else if(!poker.testHandIsValid(program.args[1])) {
+    console.log("Hand two has the wrong format!")
+    console.log("The hand must have 5 cards, each represented by one character:");
+    console.log("2, 3, 4, 5, 6, 7, 8, 9, T, J, Q, K, A, or *");
+    return
+}
+
+// define dictionaries to hold information about the hands during the run
+var handOne = {"stringWithWilds":program.args[0]};
+var handTwo = {"stringWithWilds":program.args[1]};
+
+// generate lists from the input strings
+handOne.listWithWilds = poker.parseHandToList(handOne.stringWithWilds);
+handTwo.listWithWilds = poker.parseHandToList(handTwo.stringWithWilds);
+
+// retrieve hand rankings that fully describe the hand's rank compared to others
+handOne.rank = poker.determineHandRank(handOne.listWithWilds);
+handTwo.rank = poker.determineHandRank(handTwo.listWithWilds);
+
+// retrieve the name of that hand rank from a list of those values
+handOne.rankName = poker.rankNames[handOne.rank[0]];
+handTwo.rankName = poker.rankNames[handTwo.rank[0]];
+
+// determine a winner
+var winner = poker.compareHands(handOne.rank, handTwo.rank);
+
+// display everything to screen
+console.log(handOne.rankName + ", " + handTwo.rankName + ", " + winner);
+
+// done!

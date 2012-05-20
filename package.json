@@ -1,0 +1,12 @@
+{
+	"name": "MementoPoker",
+	"version": "1.0..0",
+	"dependencies": {
+		"commander": "0.6.x",
+        "nodeunit": "0.7.x"
+	},
+	"author": "Turner Bohlen <turnerbohlen@gmail.com> (turnerbohlen.com)",
+	"engines": {
+		"node": ">= 0.4.x"
+	}
+}
